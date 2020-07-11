@@ -14,6 +14,7 @@ $ pip install ortools
 ```
 
 ## Run
+If you run the `stock_cutter_1d.py` file directly, it runs the example which uses 120 as length of stock Rod and generates some customer rods to cut. You can update these at the end of `stock_cutter_1d.py`.
 ```bash
 $ python stock_cutter_1d.py
 ```
