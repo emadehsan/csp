@@ -2,7 +2,7 @@
 Cutting Stock Problem (CSP) deals with planning the cutting of items (rods / sheets) from given stock items (which are usually of fixed size).
 
 ## New to Cutting Stock Problem? Understand Visually
-<a href="https://www.youtube.com/watch?v=4WXtfO9JB20" target="_blank">
+<a href="https://www.youtube.com/watch?v=4WXtfO9JB20">
 	<img src="./github/video-thumb.jpg" alt="Video Tutorial on Cutting Stock Problem">
 </a>
 
