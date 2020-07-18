@@ -1,15 +1,36 @@
 # Cutting Stock Problem
-This respository contains the code for Cutting Stock Problem (1 Dimensional at the moment). The code for 2-D Cutting Stock Problem will be added soon. The code contains as much explanation as possible (also contains explanation from Serge Kruk's book).
+Cutting Stock Problem (CSP) deals with planning the cutting of items (rods / sheets) from given stock items (which are usually of fixed size).
+
+## New to Cutting Stock Problem? Understand Visually
+<a href="https://www.youtube.com/watch?v=4WXtfO9JB20" target="_blank">
+	<img src="./github/video-thumb.jpg" alt="Video Tutorial on Cutting Stock Problem">
+</a>
+
+
+This implementation of CSP tries to answer
+> How to minimize number of stock items used while cutting customer order
+
+
+while doing so, it also caters
+> How to cut the stock for customer orders so that waste is minimum
+
+
+The OR Tools also helps us in calculating the number of possible solutions for your problem. So in addition, we can also compute
+> In how many ways can we cut given order from fixed size Stock?
+
 
 ## Quick Usage
-You can use [CSP Tool](https://alternate.parts/csp) online
-![CSP Tool](./github/CSP-Tool.PNG)
+This is how CSP Tools looks in action. Click [CSP Tool](https://alternate.parts/csp) to use it
+<a href="https://alternate.parts/csp">
+	<img src="./github/CSP-Tool.PNG" alt="CSP Tool">
+</a>
 
 ## Libraries
 * [Google OR-Tools](https://developers.google.com/optimization)
 
-## Setup
+## Quick Start
 ```bash
+$ git clone https://github.com/emadehsan/csp
 $ pip install ortools
 ```
 
