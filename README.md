@@ -54,8 +54,10 @@ Roll #4: [21.0, [33, 33, 33]]```
 
 ![Graph of Output](./github/graph-1d-b.PNG)
 
-## Known Issues (help appreciated)
-* Sometimes the results include extra number of customer items, even though they were not specfied in that amount. The [CSP Tool](https://alternate.parts/csp) alerts you about that so you could exclude those results. But if you can help us find the bug in the code, it would be great. 
+## Thinks to keep in mind
+* Works with integers only: IP (Integer Programming) problems working with integers only. If you have some values that have decimal part, you can multiply all of your inputs with some number that will make them integers (or close estimation).
+* You cannot specify units: Whether your input is in Inches or Meters, you have to keep a record of that yourself and conversions if any.
+
 
 ## Resources
 The whole code for this project is taken from Serge Kruk's
