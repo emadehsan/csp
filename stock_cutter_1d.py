@@ -8,6 +8,7 @@ from ortools.linear_solver import pywraplp
 from math import ceil
 from random import randint
 import json
+from read_lengths import get_data
 
 def newSolver(name,integer=False):
   return pywraplp.Solver(name,\
@@ -501,9 +502,8 @@ if __name__ == '__main__':
   # child_rolls = [
   #    [quantity, width],
   # ]
-
-  child_rolls = gen_data(3)
-  parent_rolls = [[10, 120]] # 10 doesn't matter, itls not used at the moment
+  child_rolls = get_data("infile.txt")
+  parent_rolls = [[20, 144]] # 10 doesn't matter, itls not used at the moment
 
   consumed_big_rolls = StockCutter1D(child_rolls, parent_rolls, output_json=False, large_model=False)
   print (consumed_big_rolls)
