@@ -29,20 +29,30 @@ This is how CSP Tools looks in action. Click [CSP Tool](https://alternate.parts/
 * [Google OR-Tools](https://developers.google.com/optimization)
 
 ## Quick Start
-```bash
+Install [Pipenv](https://pipenv.pypa.io/en/latest/), if not already installed
+```sh
+$ pip3 install --user pipenv
+```
+
+Clone this project and install packages
+```sh
 $ git clone https://github.com/emadehsan/csp
-$ pip install ortools
+$ cd csp
+$ pipenv install
+
+# activate env
+$ pipenv shell
 ```
 
 ## Run
 If you run the `stock_cutter_1d.py` file directly, it runs the example which uses 120 as length of stock Rod and generates some customer rods to cut. You can update these at the end of `stock_cutter_1d.py`.
-```bash
-$ python stock_cutter_1d.py
+```sh
+(csp) $ python csp/stock_cutter_1d.py
 ```
 
 Output:
 
-```bash
+```sh
 numRollsUsed 5
 Status: OPTIMAL
 Roll #0: [0.0, [33, 33, 18, 18, 18]]
@@ -53,6 +63,15 @@ Roll #4: [21.0, [33, 33, 33]]```
 ```
 
 ![Graph of Output](./github/graph-1d-b.PNG)
+
+
+### Using input file
+If you want to describe your inputs in a file, [infile.txt](./infile.txt) describes the expected format
+
+```sh
+(csp) $ python3 csp/stock_cutter_1d.py infile.txt
+```
+
 
 ## Thinks to keep in mind
 * Works with integers only: IP (Integer Programming) problems working with integers only. If you have some values that have decimal part, you can multiply all of your inputs with some number that will make them integers (or close estimation).
