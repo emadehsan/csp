@@ -20,8 +20,8 @@ The OR Tools also helps us in calculating the number of possible solutions for y
 
 
 ## Quick Usage
-This is how CSP Tools looks in action. Click [CSP Tool](https://alternate.parts/csp) to use it
-<a href="https://alternate.parts/csp">
+This is how CSP Tools looks in action. Click [CSP Tool](https://emadehsan.com/csp/) to use it
+<a href="https://emadehsan.com/csp/">
 	<img src="./github/CSP-Tool.PNG" alt="CSP Tool">
 </a>
 
