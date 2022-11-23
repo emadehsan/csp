@@ -78,6 +78,9 @@ If you want to describe your inputs in a file, [infile.txt](./infile.txt) descri
 * You cannot specify units: Whether your input is in Inches or Meters, you have to keep a record of that yourself and conversions if any.
 
 
+## CSP 2D
+Code for 2-dimensional Cutting Stock Problem is in [`deployment/stock_cutter.py`](deployment/stock_cutter.py) file. The `deployment` directory also contains code for the API server and deploying it on Heroku.
+
 ## Resources
 The whole code for this project is taken from Serge Kruk's
 * [Practical Python AI Projects: Mathematical Models of Optimization Problems with Google OR-Tools](https://amzn.to/3iPceJD)
