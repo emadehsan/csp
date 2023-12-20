@@ -2,7 +2,7 @@
 Contributions:
             Original Author: Serge Kruk https://github.com/sgkruk/Apress-AI/blob/master/cutting_stock.py
             Updated V2: Emad Ehsan https://github.com/emadehsan/Apress-AI/blob/master/my-models/custom_cutting_stock.py
-            Updated V3: Dylan Ragaishis https://github.com/DylanRR (Full documentation and addition of solveCut() and greedySolver())
+            Updated V3: Dylan Ragaishis https://github.com/DylanRR (Full documentation, addition of solveCut(), greedySolver(), and variable renaming for consistancy)
 '''
 from ortools.linear_solver import pywraplp
 from math import ceil
@@ -25,7 +25,6 @@ from typing import Optional
     """
 def newSolver(name,integer=False):
   return pywraplp.Solver(name, pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING if integer else pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
-
 
 
 """
@@ -70,7 +69,7 @@ def ObjVal(x):
 
     Returns:
         List[List[int, int]]: A list of lists where each inner list contains
-        quantity and width of a roll.
+        quantity and width of a stick.
 """
 def gen_data(num_orders):
     R=[]
@@ -84,25 +83,25 @@ def gen_data(num_orders):
     Solve the Cutting Stock Problem using a small model approach.
 
     This function solves the Cutting Stock Problem using a small model approach, where it creates integer variables
-    for big roll usage and cuts. It then formulates and adds constraints to ensure demand fulfillment and
-    maximum size limits. The objective is to minimize the total number of big rolls used. The function returns
-    the status of the solver, the number of big rolls used, the consumed big rolls, the unused roll widths,
+    for big stick usage and cuts. It then formulates and adds constraints to ensure demand fulfillment and
+    maximum size limits. The objective is to minimize the total number of big sticks used. The function returns
+    the status of the solver, the number of big sticks used, the consumed big sticks, the unused stick widths,
     and the wall time taken for solving.
 
     Args:
-        demands (List[List[int]]): A list of demand quantities and widths for small rolls.
-        parent_width (int, optional): Width of the parent roll. Defaults to 100.
+        demands (List[List[int]]): A list of demand quantities and widths for small sticks.
+        parent_width (int, optional): Width of the parent stick. Defaults to 100.
 
     Returns:
-        Tuple: A tuple containing the solver status, number of big rolls used, consumed big rolls,
-        unused roll widths, and wall time taken.
+        Tuple: A tuple containing the solver status, number of big sticks used, consumed big sticks,
+        unused stick widths, and wall time taken.
 """
 def solve_model(demands, parent_width=100):
   num_orders = len(demands)
   solver = newSolver('Cutting Stock', True)
   k,b  = bounds(demands, parent_width)
   
-  # Create variables for big roll usage and cuts
+  # Create variables for big stick usage and cuts
   y = [ solver.IntVar(0, 1, f'y_{i}') for i in range(k[1]) ] 
   x = [[solver.IntVar(0, b[i], f'x_{i}_{j}') for j in range(k[1])] \
       for i in range(num_orders)]
@@ -123,14 +122,14 @@ def solve_model(demands, parent_width=100):
 
   solver.Add(nb == solver.Sum(y[j] for j in range(k[1])))
 
-  # Minimize total big rolls used
+  # Minimize total big sticks used
   Cost = solver.Sum((j+1)*y[j] for j in range(k[1]))
   solver.Minimize(Cost)
 
   status = solver.Solve()
-  numRollsUsed = SolVal(nb)
+  numSticksUsed = SolVal(nb)
 
-  return status, numRollsUsed, rolls(numRollsUsed, SolVal(x), SolVal(unused_widths), demands), SolVal(unused_widths), solver.WallTime()
+  return status, numSticksUsed, sticks(numSticksUsed, SolVal(x), SolVal(unused_widths), demands), SolVal(unused_widths), solver.WallTime()
 
 
 
@@ -138,12 +137,12 @@ def solve_model(demands, parent_width=100):
     Calculate bounds for the Cutting Stock Problem.
 
     This function calculates the lower and upper bounds for the Cutting Stock Problem, which are used to guide
-    the optimization process. It determines the minimum number of big rolls required (lower bound) and the maximum
-    number of small rolls that can be consumed (upper bound) based on the given demands and parent roll width.
+    the optimization process. It determines the minimum number of big sticks required (lower bound) and the maximum
+    number of small sticks that can be consumed (upper bound) based on the given demands and parent stick width.
 
     Args:
-        demands (List[List[int]]): A list of demand quantities and widths for small rolls.
-        parent_width (int, optional): Width of the parent roll. Defaults to 100.
+        demands (List[List[int]]): A list of demand quantities and widths for small sticks.
+        parent_width (int, optional): Width of the parent stick. Defaults to 100.
 
     Returns:
         Tuple[List[int], List[int]]: A tuple containing the lower bound (k) and the upper bound (b) for the problem.
@@ -176,30 +175,30 @@ def bounds(demands, parent_width=100):
 
 
 """
-    Generate the list of consumed big rolls based on the solution.
+    Generate the list of consumed big sticks based on the solution.
 
-    This function generates a list of consumed big rolls based on the solution obtained from the optimization model.
-    It calculates the width of each roll used and the corresponding small rolls that are cut from it.
+    This function generates a list of consumed big sticks based on the solution obtained from the optimization model.
+    It calculates the width of each stick used and the corresponding small sticks that are cut from it.
 
     Args:
-        nb (int): Number of big rolls used.
-        x (List[List[int]]): Matrix representing the quantity of small rolls cut from each order for each big roll.
-        w (List[int]): List of unused widths for each big roll.
-        demands (List[List[int]]): A list of demand quantities and widths for small rolls.
+        nb (int): Number of big sticks used.
+        x (List[List[int]]): Matrix representing the quantity of small sticks cut from each order for each big stick.
+        w (List[int]): List of unused widths for each big stick.
+        demands (List[List[int]]): A list of demand quantities and widths for small sticks.
 
     Returns:
-        List[List[Union[int, List[int]]]]: A list of consumed big rolls, where each entry contains the width of
-        the big roll and the corresponding small rolls cut from it.
+        List[List[Union[int, List[int]]]]: A list of consumed big sticks, where each entry contains the width of
+        the big stick and the corresponding small sticks cut from it.
  """
-def rolls(nb, x, w, demands):
-  consumed_big_rolls = []
+def sticks(nb, x, w, demands):
+  consumed_big_sticks = []
   num_orders = len(x) 
 
   for j in range(len(x[0])):
     RR = [ abs(w[j])] + [ int(x[i][j])*[demands[i][1]] for i in range(num_orders) if x[i][j] > 0 ]
-    consumed_big_rolls.append(RR)
+    consumed_big_sticks.append(RR)
 
-  return consumed_big_rolls
+  return consumed_big_sticks
 
 
 
@@ -208,24 +207,25 @@ def rolls(nb, x, w, demands):
 
     This function solves the large-scale cutting stock optimization problem using Dantzig-Wolfe decomposition.
     It iteratively improves the solution by optimizing patterns and pattern usage. The goal is to minimize the
-    number of big rolls used while satisfying demand quantities for small rolls.
+    number of big sticks used while satisfying demand quantities for small sticks.
 
     Args:
-        demands (List[List[int]]): A list of demand quantities and widths for small rolls.
-        parent_width (int, optional): The width of the parent roll. Defaults to 100.
+        demands (List[List[int]]): A list of demand quantities and widths for small sticks.
+        parent_width (int, optional): The width of the parent stick. Defaults to 100.
+        iterAccuracy (int, optional): The number of column generations to iterate through. Defaults to 20.
 
     Returns:
         tuple: A tuple containing the solver status, optimized patterns, pattern usage (y),
-               and the rolls cut using the optimized patterns.
+               and the sticks cut using the optimized patterns.
  """
-def solve_large_model(demands, parent_width=100):
+def solve_large_model(demands, parent_width=100, iterAccuracy=20):
   num_orders = len(demands)
   iter = 0
   patterns = get_initial_patterns(demands)
   quantities = [demands[i][0] for i in range(num_orders)]
   print('quantities', quantities)
 
-  while iter < 20:
+  while iter < iterAccuracy:
     status, y, l = solve_master(patterns, quantities, parent_width=parent_width)
     iter += 1
 
@@ -237,7 +237,7 @@ def solve_large_model(demands, parent_width=100):
 
   status, y, l = solve_master(patterns, quantities, parent_width=parent_width, integer=True)  
 
-  return status, patterns, y, rolls_patterns(patterns, y, demands, parent_width=parent_width)
+  return status, patterns, y, sticks_patterns(patterns, y, demands, parent_width=parent_width)
 
 
 
@@ -246,12 +246,12 @@ def solve_large_model(demands, parent_width=100):
 
     This function defines and solves the master problem, which is used in the context of the cutting stock
     optimization problem. The master problem aims to find the optimal combination of pattern usage that minimizes
-    the number of big rolls used.
+    the number of big sticks used.
 
     Args:
-        patterns (List[List[int]]): A list of patterns where each pattern is a list of integers representing the usage of each small roll for that pattern.
+        patterns (List[List[int]]): A list of patterns where each pattern is a list of integers representing the usage of each small stick for that pattern.
         quantities (List[int]): A list of integers representing the demand quantities for each pattern.
-        parent_width (int, optional): The width of the parent roll. Defaults to 100.
+        parent_width (int, optional): The width of the parent stick. Defaults to 100.
         integer (bool, optional): If True, the solver uses integer programming, otherwise linear programming. (Defaults to False)
 
     Returns:
@@ -286,15 +286,15 @@ def solve_master(patterns, quantities, parent_width=100, integer=False):
     Solve the sub-problem to find a new cutting pattern.
 
     This function solves a sub-problem to find a new cutting pattern based on given dual values (l) and
-    unused roll widths (w). It creates integer variables for the new pattern and maximizes the objective,
+    unused stick widths (w). It creates integer variables for the new pattern and maximizes the objective,
     which is the sum of dual values multiplied by the new pattern variables. Constraints are added to ensure
-    the total width of the new pattern does not exceed the parent roll width. The function returns the new
+    the total width of the new pattern does not exceed the parent stick width. The function returns the new
     pattern and the objective value of the solver.
 
     Args:
         l (List[float]): List of dual values corresponding to constraints.
-        w (List[float]): List of unused roll widths for each constraint.
-        parent_width (int, optional): Width of the parent roll. Defaults to 100.
+        w (List[float]): List of unused stick widths for each constraint.
+        parent_width (int, optional): Width of the parent stick. Defaults to 100.
 
     Returns:
         Tuple: A tuple containing the new cutting pattern and the objective value of the solver.
@@ -318,14 +318,14 @@ def get_new_pattern(l, w, parent_width=100):
     Generate initial cutting patterns.
 
     This function generates the initial cutting patterns based on the number of orders (demands).
-    Each pattern corresponds to one order, and only the respective order's roll is used in the pattern.
-    All other rolls are set to 0. These initial patterns are used to start the optimization process.
+    Each pattern corresponds to one order, and only the respective order's stick is used in the pattern.
+    All other sticks are set to 0. These initial patterns are used to start the optimization process.
 
     Args:
         demands (List[List[int]]): List of order quantities and widths.
 
     Returns:
-        List[List[int]]: List of initial cutting patterns, where each pattern has a single roll used.
+        List[List[int]]: List of initial cutting patterns, where each pattern has a single stick used.
     """
 def get_initial_patterns(demands):
   num_orders = len(demands)
@@ -338,19 +338,19 @@ def get_initial_patterns(demands):
     Generate detailed cutting patterns based on the optimized solution.
 
     This function generates detailed cutting patterns based on the optimized solution obtained from the large model.
-    It takes the optimized patterns, the number of big rolls used, the original order demands, and the parent roll width.
-    It creates a detailed breakdown of how each big roll is used, including the widths of small rolls cut from it.
+    It takes the optimized patterns, the number of big sticks used, the original order demands, and the parent stick width.
+    It creates a detailed breakdown of how each big stick is used, including the widths of small sticks cut from it.
     
     Args:
         patterns (List[List[int]]): List of optimized cutting patterns for each order.
-        y (List[int]): List of the number of big rolls used for each pattern.
+        y (List[int]): List of the number of big sticks used for each pattern.
         demands (List[List[int]]): List of original order quantities and widths.
-        parent_width (int, optional): Width of the parent roll. Defaults to 100.
+        parent_width (int, optional): Width of the parent stick. Defaults to 100.
 
     Returns:
-        List[List[Union[int, List[int]]]]: Detailed breakdown of how each big roll is used, including unused width.
+        List[List[Union[int, List[int]]]]: Detailed breakdown of how each big stick is used, including unused width.
     """
-def rolls_patterns(patterns, y, demands, parent_width=100):
+def sticks_patterns(patterns, y, demands, parent_width=100):
   R, m, n = [], len(patterns), len(y)
 
   for j in range(n):
@@ -367,22 +367,22 @@ def rolls_patterns(patterns, y, demands, parent_width=100):
 
 
 """
-    Check if small roll widths are within acceptable limits.
+    Check if small stick widths are within acceptable limits.
 
-    This function checks whether the widths of small rolls specified in the demands list
-    are within acceptable limits, i.e., they do not exceed the width of the parent rolls.
+    This function checks whether the widths of small sticks specified in the demands list
+    are within acceptable limits, i.e., they do not exceed the width of the parent sticks.
     
     Args:
         demands (List[List[int]]): List of order quantities and widths.
-        parent_width (int): Width of the parent roll.
+        parent_width (int): Width of the parent stick.
 
     Returns:
-        bool: True if all small roll widths are within limits, False otherwise.
+        bool: True if all small stick widths are within limits, False otherwise.
 """
 def checkWidths(demands, parent_width):
   for quantity, width in demands:
     if width > parent_width:
-      print(f'Small roll width {width} is greater than parent rolls width {parent_width}. Exiting')
+      print(f'Small stick width {width} is greater than parent sticks width {parent_width}. Exiting')
       return False
   return True
 
@@ -431,9 +431,9 @@ def greedySolver(sorted_pairs, working_length, working_stick, blade_width):
         greedy_model (bool): If True, solve using a greedy approach. If False, use the specified model.
 
     Returns:
-        List or str: Depending on the value of output_json, either a list of consumed rolls or a JSON string.
+        List or str: Depending on the value of output_json, either a list of consumed sticks or a JSON string.
     """
-def solveCut(cut_list, mtrl_length, blade_width, output_json=True, large_model=True, greedy_model=False):
+def solveCut(cut_list, mtrl_length, blade_width, output_json=True, large_model=True, greedy_model=False, iterAccuracy=20):
     if greedy_model:
         optimized_sticks = []
         sorted_pairs = cut_list.copy()
@@ -446,9 +446,9 @@ def solveCut(cut_list, mtrl_length, blade_width, output_json=True, large_model=T
                 sorted_pairs = newtempSorted_pairs
         solved = optimized_sticks
     else:
-        parent_rolls = [[1, mtrl_length]]
-        child_rolls = [[quantity, length + blade_width] for length, quantity in cut_list]
-        solved = StockCutter1D(child_rolls, parent_rolls, output_json, large_model)
+        parent_sticks = [[1, mtrl_length]]
+        child_sticks = [[quantity, length + blade_width] for length, quantity in cut_list]
+        solved = StockCutter1D(child_sticks, parent_sticks, output_json, large_model, iterAccuracy=iterAccuracy)
     return solved
 
 
@@ -457,13 +457,13 @@ def solveCut(cut_list, mtrl_length, blade_width, output_json=True, large_model=T
 """
     Perform 1D stock cutting optimization using cutting stock algorithms.
 
-    This function takes a list of child rolls and a list of parent rolls, and applies
-    a 1D stock cutting optimization algorithm to find an efficient way to cut child rolls
-    from parent rolls, minimizing wastage.
+    This function takes a list of child sticks and a list of parent sticks, and applies
+    a 1D stock cutting optimization algorithm to find an efficient way to cut child sticks
+    from parent sticks, minimizing wastage.
 
     Args:
-        child_rolls (List[List[int]]): List of child roll quantities and widths.
-        parent_rolls (List[List[int]]): List of parent roll quantities and widths.
+        child_sticks (List[List[int]]): List of child stick quantities and widths.
+        parent_sticks (List[List[int]]): List of parent stick quantities and widths.
         output_json (bool): If True, the output will be in JSON format, else in a list format.
         large_model (bool): If True, uses a large-scale optimization model, else uses a small model.
 
@@ -475,42 +475,42 @@ def solveCut(cut_list, mtrl_length, blade_width, output_json=True, large_model=T
         - If large_model is False, it uses a small-scale model for optimization.
         - If large_model is True, it uses a large-scale model for optimization.
 """
-def StockCutter1D(child_rolls, parent_rolls, output_json=True, large_model=True):
-  parent_width = parent_rolls[0][1]
+def StockCutter1D(child_sticks, parent_sticks, output_json=True, large_model=True, iterAccuracy=20):
+  parent_width = parent_sticks[0][1]
 
-  if not checkWidths(demands=child_rolls, parent_width=parent_width):
+  if not checkWidths(demands=child_sticks, parent_width=parent_width):
     return []
 
-  print('child_rolls', child_rolls)
-  print('parent_rolls', parent_rolls)
+  print('child_sticks', child_sticks)
+  print('parent_sticks', parent_sticks)
 
   if not large_model:
     print('Running Small Model...')
-    status, numRollsUsed, consumed_big_rolls, unused_roll_widths, wall_time = \
-              solve_model(demands=child_rolls, parent_width=parent_width)
+    status, numSticksUsed, consumed_big_sticks, unused_stick_widths, wall_time = \
+              solve_model(demands=child_sticks, parent_width=parent_width)
 
-    print('consumed_big_rolls before adjustment: ', consumed_big_rolls)
-    new_consumed_big_rolls = []
-    for big_roll in consumed_big_rolls:
-      if len(big_roll) < 2:
-        consumed_big_rolls.remove(big_roll)
+    print('consumed_big_sticks before adjustment: ', consumed_big_sticks)
+    new_consumed_big_sticks = []
+    for big_stick in consumed_big_sticks:
+      if len(big_stick) < 2:
+        consumed_big_sticks.remove(big_stick)
         continue
-      unused_width = big_roll[0]
-      subrolls = []
-      for subitem in big_roll[1:]:
+      unused_width = big_stick[0]
+      substicks = []
+      for subitem in big_stick[1:]:
         if isinstance(subitem, list):
-          subrolls = subrolls + subitem
+          substicks = substicks + subitem
         else:
-          subrolls.append(subitem)
-      new_consumed_big_rolls.append([unused_width, subrolls])
-    print('consumed_big_rolls after adjustment: ', new_consumed_big_rolls)
-    consumed_big_rolls = new_consumed_big_rolls
+          substicks.append(subitem)
+      new_consumed_big_sticks.append([unused_width, substicks])
+    print('consumed_big_sticks after adjustment: ', new_consumed_big_sticks)
+    consumed_big_sticks = new_consumed_big_sticks
   
   else:
     print('Running Large Model...');
-    status, A, y, consumed_big_rolls = solve_large_model(demands=child_rolls, parent_width=parent_width)
+    status, A, y, consumed_big_sticks = solve_large_model(demands=child_sticks, parent_width=parent_width, iterAccuracy=iterAccuracy)
 
-  numRollsUsed = len(consumed_big_rolls)
+  numSticksUsed = len(consumed_big_sticks)
 
   STATUS_NAME = ['OPTIMAL',
     'FEASIBLE',
@@ -524,11 +524,11 @@ def StockCutter1D(child_rolls, parent_rolls, output_json=True, large_model=True)
       "statusName": STATUS_NAME[status],
       "numSolutions": '1',
       "numUniqueSolutions": '1',
-      "numRollsUsed": numRollsUsed,
-      "solutions": consumed_big_rolls
+      "numSticksUsed": numSticksUsed,
+      "solutions": consumed_big_sticks
   }
 
-  print('numRollsUsed', numRollsUsed)
+  print('numSticksUsed', numSticksUsed)
   print('Status:', output['statusName'])
   print('Solutions found :', output['numSolutions'])
   print('Unique solutions: ', output['numUniqueSolutions'])
@@ -536,35 +536,35 @@ def StockCutter1D(child_rolls, parent_rolls, output_json=True, large_model=True)
   if output_json:
     return json.dumps(output)        
   else:
-    return consumed_big_rolls
+    return consumed_big_sticks
 
 
 
 """
-    Draws a graphical representation of the cut rolls.
+    Draws a graphical representation of the cut sticks.
 
-    This function generates a visual representation of the cut rolls using matplotlib. Each big roll
-    is shown as a horizontal colored line, with each color representing a small roll that is cut from it.
-    If a big roll has unused width, it is shown as a black-colored segment at the end.
+    This function generates a visual representation of the cut sticks using matplotlib. Each big stick
+    is shown as a horizontal colored line, with each color representing a small stick that is cut from it.
+    If a big stick has unused width, it is shown as a black-colored segment at the end.
 
     Args:
-        consumed_big_rolls (List[List]): List of consumed big rolls, where each entry is a list containing
-                                        leftover width and a list of small rolls cut from it.
-        child_rolls (List[List[int]]): List of child roll quantities and widths.
-        parent_width (int): Width of the parent roll.
+        consumed_big_sticks (List[List]): List of consumed big sticks, where each entry is a list containing
+                                        leftover width and a list of small sticks cut from it.
+        child_sticks (List[List[int]]): List of child stick quantities and widths.
+        parent_width (int): Width of the parent stick.
 
     Note:
         - The function uses matplotlib to draw the graph.
-        - The color of each small roll is determined based on its width.
-        - The height of each big roll on the graph is fixed at 8 units.
-        - There will be a margin of 2 units between successive big rolls.
+        - The color of each small stick is determined based on its width.
+        - The height of each big stick on the graph is fixed at 8 units.
+        - There will be a margin of 2 units between successive big sticks.
 """
-def drawGraph(consumed_big_rolls, child_rolls, parent_width):
+def drawGraph(consumed_big_sticks, child_sticks, parent_width):
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
 
     xSize = parent_width
-    ySize = 10 * len(consumed_big_rolls)
+    ySize = 10 * len(consumed_big_sticks)
 
     fig,ax = plt.subplots(1)
     plt.xlim(0, xSize)
@@ -575,24 +575,24 @@ def drawGraph(consumed_big_rolls, child_rolls, parent_width):
     colors = ['r', 'g', 'b', 'y', 'brown', 'violet', 'pink', 'gray', 'orange', 'b', 'y']
     colorDict = {}
     i = 0
-    for quantity, width in child_rolls:
+    for quantity, width in child_sticks:
       colorDict[width] = colors[i % 11]
       i+= 1
 
     y1 = 0
-    for i, big_roll in enumerate(consumed_big_rolls):
-      unused_width = big_roll[0]
-      small_rolls = big_roll[1]
+    for i, big_stick in enumerate(consumed_big_sticks):
+      unused_width = big_stick[0]
+      small_sticks = big_stick[1]
 
       x1 = 0
       x2 = 0
       y2 = y1 + 8
-      for j, small_roll in enumerate(small_rolls):
-        x2 = x2 + small_roll
+      for j, small_stick in enumerate(small_sticks):
+        x2 = x2 + small_stick
         print(f"{x1}, {y1} -> {x2}, {y2}")
         width = abs(x1-x2)
         height = abs(y1-y2)
-        rect_shape = patches.Rectangle((x1,y1), width, height, facecolor=colorDict[small_roll], label=f'{small_roll}')
+        rect_shape = patches.Rectangle((x1,y1), width, height, facecolor=colorDict[small_stick], label=f'{small_stick}')
         ax.add_patch(rect_shape)
         x1 = x2
 
@@ -614,21 +614,21 @@ if __name__ == '__main__':
   def main(infile_name: Optional[str] = typer.Argument(None)):
      # Check if an input file name is provided.
     if infile_name:
-      child_rolls = get_data(infile_name)
+      child_sticks = get_data(infile_name)
     else:
-      child_rolls = gen_data(3)
-    parent_rolls = [[10, 120]] # Parent roll data
+      child_sticks = gen_data(3)
+    parent_sticks = [[10, 120]] # Parent stick data
 
-    # Run the StockCutter1D function to get consumed big rolls.
-    consumed_big_rolls = StockCutter1D(child_rolls, parent_rolls, output_json=False, large_model=False)
-    typer.echo(f"{consumed_big_rolls}")
+    # Run the StockCutter1D function to get consumed big sticks.
+    consumed_big_sticks = StockCutter1D(child_sticks, parent_sticks, output_json=False, large_model=False)
+    typer.echo(f"{consumed_big_sticks}")
 
-    # Print information about the consumed big rolls.
-    for idx, roll in enumerate(consumed_big_rolls):
-      typer.echo(f"Roll #{idx}:{roll}")
+    # Print information about the consumed big sticks.
+    for idx, stick in enumerate(consumed_big_sticks):
+      typer.echo(f"Stick #{idx}:{stick}")
 
-    # Draw a graph to visualize the consumed big rolls.
-    drawGraph(consumed_big_rolls, child_rolls, parent_width=parent_rolls[0][1])
+    # Draw a graph to visualize the consumed big sticks.
+    drawGraph(consumed_big_sticks, child_sticks, parent_width=parent_sticks[0][1])
 
 # Run the main function using Typer.
 if __name__ == "__main__":

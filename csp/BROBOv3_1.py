@@ -93,7 +93,7 @@ class CutOptimizerApp:
             sorted_pairs = sorted(zip(cut_lengths, cut_quantities), key=lambda pair: pair[0], reverse=True)
 
             # Call the new solver here
-            consumed_big_rolls = solveCut(sorted_pairs, working_length, blade_width, output_json=False, large_model=True, greedy_model=False)
+            consumed_big_rolls = solveCut(sorted_pairs, working_length, blade_width, output_json=False, large_model=True, greedy_model=False, iterAccuracy=500)
 
             # Display the results or perform any further actions
             for idx, stick in enumerate(consumed_big_rolls):
@@ -102,10 +102,6 @@ class CutOptimizerApp:
 
         except ValueError:
             messagebox.showerror("Error", "Please enter valid numeric values.")
-
-
-
-
 
 if __name__ == "__main__":
     root = tk.Tk()
