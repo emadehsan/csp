@@ -1,7 +1,8 @@
 from asyncio.windows_events import NULL
 import tkinter as tk
 from tkinter import messagebox
-from  stock_cutter_1d import solveCut
+from stock_cutter_1d import solveCut
+from alns_stock_cutter import alnsSolver
 #from ortools.sat.python import cp_model
 
 class CutOptimizerApp:
@@ -81,24 +82,41 @@ class CutOptimizerApp:
         self.cut_quantities.append(cut_quantity)
 
 
+    def scaleMeasurement(self, measurement, scaleFactor):
+        return int(float(measurement) * scaleFactor)
+
+    def zipCutData(self, cut_lengths, cut_quantities):
+        return sorted(zip(cut_lengths, cut_quantities), key=lambda pair: pair[0], reverse=True)
+
+    def flattenCutData(self, cutData):   
+        return [length for (length, quantity) in cutData for _ in range(quantity)]
+    
+    def addBladeKerf(self, cut_lengths, bladeKerf):
+        return [length + bladeKerf for length in cut_lengths]
+    
     def optimize_cuts(self):
         try:
+            searchType = "OR-Tools"
             scale_factor = 1000
-            stock_length = int(float(self.stock_length.get()) * scale_factor)  # Convert to integer after applying a scale factor
-            blade_width = int(float(self.blade_width.get()) * scale_factor)    # Convert to integer after applying a scale factor
-            dead_zone = int(float(self.dead_zone.get()) * scale_factor)        # Convert to integer after applying a scale factor
+            stock_length = self.scaleMeasurement(self.stock_length.get(), scale_factor)
+            blade_width = self.scaleMeasurement(self.blade_width.get(), scale_factor)
+            dead_zone = self.scaleMeasurement(self.dead_zone.get(), scale_factor)
             working_length = stock_length - dead_zone
-            cut_lengths = [int(float(cut_length.get()) * scale_factor) for cut_length in self.cut_lengths]
             cut_quantities = [int(cut_quantity.get()) for cut_quantity in self.cut_quantities]
-            sorted_pairs = sorted(zip(cut_lengths, cut_quantities), key=lambda pair: pair[0], reverse=True)
+            cut_lengths = [int(cut_length.get()) for cut_length in self.cut_lengths]
+            cut_lengths = self.addBladeKerf(cut_lengths, blade_width)
+            cutData = self.zipCutData(cut_lengths, cut_quantities)
 
-            # Call the new solver here
-            consumed_big_rolls = solveCut(sorted_pairs, working_length, blade_width, output_json=False, large_model=True, greedy_model=False, iterAccuracy=500)
-
-            # Display the results or perform any further actions
-            for idx, stick in enumerate(consumed_big_rolls):
-                adjusted_lengths = [float(length - blade_width) / scale_factor for length in stick[1]]
-                print(f"Stick {idx + 1}: {adjusted_lengths}")
+            if searchType == "ALNS":
+                alnsCutData = self.flattenCutData(cutData)
+                solution = alnsSolver(working_length, cutData, iterations=1000, seed=1234)
+            elif searchType == "OR-Tools":
+                orToolsCutData = cutData
+                solution = solveCut(orToolsCutData, working_length, output_json=False, large_model=True, greedy_model=False, iterAccuracy=100)
+                for idx, stick in enumerate(solution):
+                    adjusted_lengths = [float(length - blade_width) / scale_factor for length in stick[1]]
+                    print(f"Stick {idx + 1}: {adjusted_lengths}")
+                             
 
         except ValueError:
             messagebox.showerror("Error", "Please enter valid numeric values.")
