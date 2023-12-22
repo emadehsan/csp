@@ -103,20 +103,15 @@ class CutOptimizerApp:
             dead_zone = self.scaleMeasurement(self.dead_zone.get(), scale_factor)
             working_length = stock_length - dead_zone
             cut_quantities = [int(cut_quantity.get()) for cut_quantity in self.cut_quantities]
-            cut_lengths = [int(cut_length.get()) for cut_length in self.cut_lengths]
-            cut_lengths = self.addBladeKerf(cut_lengths, blade_width)
-            cutData = self.zipCutData(cut_lengths, cut_quantities)
+            sorted_pairs = sorted(zip(cut_lengths, cut_quantities), key=lambda pair: pair[0], reverse=True)
 
-            if searchType == "ALNS":
-                alnsCutData = self.flattenCutData(cutData)
-                solution = alnsSolver(working_length, cutData, iterations=1000, seed=1234)
-            elif searchType == "OR-Tools":
-                orToolsCutData = cutData
-                solution = solveCut(orToolsCutData, working_length, output_json=False, large_model=True, greedy_model=False, iterAccuracy=100)
-                for idx, stick in enumerate(solution):
-                    adjusted_lengths = [float(length - blade_width) / scale_factor for length in stick[1]]
-                    print(f"Stick {idx + 1}: {adjusted_lengths}")
-                             
+            # Call the new solver here
+            consumed_big_rolls = solveCut(sorted_pairs, working_length, blade_width, output_json=False, large_model=True, greedy_model=False)
+
+            # Display the results or perform any further actions
+            for idx, stick in enumerate(consumed_big_rolls):
+                adjusted_lengths = [float(length - blade_width) / scale_factor for length in stick[1]]
+                print(f"Stick {idx + 1}: {adjusted_lengths}")
 
         except ValueError:
             messagebox.showerror("Error", "Please enter valid numeric values.")

@@ -433,7 +433,7 @@ def greedySolver(sorted_pairs, working_length, working_stick, blade_width):
     Returns:
         List or str: Depending on the value of output_json, either a list of consumed sticks or a JSON string.
     """
-def solveCut(cutData, mtrl_length, output_json=True, large_model=True, greedy_model=False, iterAccuracy=20):
+def solveCut(cut_list, mtrl_length, blade_width, output_json=True, large_model=True, greedy_model=False):
     if greedy_model:
         optimized_sticks = []
         sorted_pairs = cutData.copy()
@@ -446,9 +446,9 @@ def solveCut(cutData, mtrl_length, output_json=True, large_model=True, greedy_mo
                 sorted_pairs = newtempSorted_pairs
         solved = optimized_sticks
     else:
-        parent_sticks = [[1, mtrl_length]]
-        child_sticks = cutData
-        solved = StockCutter1D(child_sticks, parent_sticks, output_json, large_model, iterAccuracy=iterAccuracy)
+        parent_rolls = [[1, mtrl_length]]
+        child_rolls = [[quantity, length + blade_width] for length, quantity in cut_list]
+        solved = StockCutter1D(child_rolls, parent_rolls, output_json, large_model)
     return solved
 
 
