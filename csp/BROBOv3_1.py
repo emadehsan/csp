@@ -96,11 +96,11 @@ class CutOptimizerApp:
     
     def optimize_cuts(self):
         try:
-            searchType = "OR-Tools"
             scale_factor = 1000
-            stock_length = self.scaleMeasurement(self.stock_length.get(), scale_factor)
-            blade_width = self.scaleMeasurement(self.blade_width.get(), scale_factor)
-            dead_zone = self.scaleMeasurement(self.dead_zone.get(), scale_factor)
+            stock_length = int(float(self.stock_length.get()) * scale_factor)  # Convert to integer after applying a scale factor
+            blade_width = int(float(self.blade_width.get()) * scale_factor)    # Convert to integer after applying a scale factor
+            dead_zone = int(float(self.dead_zone.get()) * scale_factor)        # Convert to integer after applying a scale factor
+            cut_lengths = [int(float(cut_length.get()) * scale_factor) for cut_length in self.cut_lengths]
             working_length = stock_length - dead_zone
             cut_quantities = [int(cut_quantity.get()) for cut_quantity in self.cut_quantities]
             sorted_pairs = sorted(zip(cut_lengths, cut_quantities), key=lambda pair: pair[0], reverse=True)
