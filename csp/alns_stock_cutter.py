@@ -146,7 +146,7 @@ def minimal_wastage(state, random_state):
 
 def alnsSolver(stock_length, cutData, iterations=1000, seed=1234):
     BEAM_LENGTH = stock_length
-    BEAMS = cutData
+    BEAMS = cutData # must be a flattened list 
     # Define the initial state of the problem
     rnd_state = rnd.RandomState(seed)
     state = CspState([], BEAMS.copy())
@@ -165,10 +165,6 @@ def alnsSolver(stock_length, cutData, iterations=1000, seed=1234):
     stop = MaxIterations(iterations)
     result = alns.iterate(init_sol, select, accept, stop)
     solution = result.best_state
-
-    for i, assignments in enumerate(solution.assignments, start=1):
-        adjusted_assignments = [(assignment - 1) / 1000 for assignment in assignments]
-        print(f"Beam {i}: {adjusted_assignments}")
     
     # Return the best solution found
-    return solution
+    return solution.assignments

@@ -80,41 +80,61 @@ class CutOptimizerApp:
 
         self.cut_lengths.append(cut_length)
         self.cut_quantities.append(cut_quantity)
-
-
-    def scaleMeasurement(self, measurement, scaleFactor):
-        return int(float(measurement) * scaleFactor)
-
-    def zipCutData(self, cut_lengths, cut_quantities):
-        return sorted(zip(cut_lengths, cut_quantities), key=lambda pair: pair[0], reverse=True)
-
-    def flattenCutData(self, cutData):   
-        return [length for (length, quantity) in cutData for _ in range(quantity)]
     
-    def addBladeKerf(self, cut_lengths, bladeKerf):
-        return [length + bladeKerf for length in cut_lengths]
-    
+    def get_inputs(self):
+        scale_factor = 100
+        solver = "ALNS"
+        stock_length = scaleMeasurement(self.stock_length.get(), scale_factor)  # Convert to integer after applying a scale factor
+        blade_width = scaleMeasurement(self.blade_width.get(), scale_factor)    # Convert to integer after applying a scale factor
+        dead_zone = scaleMeasurement(self.dead_zone.get(), scale_factor)        # Convert to integer after applying a scale factor
+        stock_length = stock_length - dead_zone
+        cut_lengths = [scaleMeasurement(cut_length.get(), scale_factor) for cut_length in self.cut_lengths]
+        cut_quantities = [int(cut_quantity.get()) for cut_quantity in self.cut_quantities]
+        return stock_length, blade_width, cut_lengths, cut_quantities, solver
+
+    def process_data(self, stock_length, blade_width, cut_lengths, cut_quantities):
+        zipped_data = zipCutData(cut_lengths, cut_quantities)
+        zipped_data = addBladeKerf(zipped_data, blade_width)
+        return zipped_data
+
     def optimize_cuts(self):
         try:
-            scale_factor = 1000
-            stock_length = int(float(self.stock_length.get()) * scale_factor)  # Convert to integer after applying a scale factor
-            blade_width = int(float(self.blade_width.get()) * scale_factor)    # Convert to integer after applying a scale factor
-            dead_zone = int(float(self.dead_zone.get()) * scale_factor)        # Convert to integer after applying a scale factor
-            cut_lengths = [int(float(cut_length.get()) * scale_factor) for cut_length in self.cut_lengths]
-            working_length = stock_length - dead_zone
-            cut_quantities = [int(cut_quantity.get()) for cut_quantity in self.cut_quantities]
-            sorted_pairs = sorted(zip(cut_lengths, cut_quantities), key=lambda pair: pair[0], reverse=True)
-
+            stock_length, blade_width, cut_lengths, cut_quantities, solver = self.get_inputs()
+            zipped_data = self.process_data(stock_length, blade_width, cut_lengths, cut_quantities)
             # Call the new solver here
-            consumed_big_rolls = solveCut(sorted_pairs, working_length, blade_width, output_json=False, large_model=True, greedy_model=False)
+            if solver == "OR-Tools":
+                zipped_data = [[quantity, length] for length, quantity in zipped_data]  # Adjust the format for OR-Tools
+                solution = solveCut(zipped_data, stock_length, output_json=False, large_model=True, greedy_model=False, iterAccuracy=500)
+                for idx, stick in enumerate(solution):
+                    adjusted_lengths = [float(length - blade_width) / 1000 for length in stick[1]]
+                    print(f"Stick {idx + 1}: {adjusted_lengths}")
+            elif solver == "ALNS":
+                print(f"Zipped Data: {zipped_data}")
+                zipped_data = flattenCutData(zipped_data)
+                print(f"Data Flattened: {zipped_data}")
+                solution = alnsSolver(stock_length, zipped_data, iterations=1000, seed=1234)
+                print(f"Solution: {solution}")
+                for idx, stick in enumerate(solution):
+                    adjusted_lengths = [float(length - blade_width) / 1000 for length in stick]
+                    print(f"Stick {idx + 1}: {adjusted_lengths}")
 
-            # Display the results or perform any further actions
-            for idx, stick in enumerate(consumed_big_rolls):
-                adjusted_lengths = [float(length - blade_width) / scale_factor for length in stick[1]]
-                print(f"Stick {idx + 1}: {adjusted_lengths}")
-
-        except ValueError:
+        except ValueError as e:
+            print(f"Error: {e}")
             messagebox.showerror("Error", "Please enter valid numeric values.")
+
+def scaleMeasurement(measurement, scaleFactor):
+    return int(float(measurement) * scaleFactor)
+
+def zipCutData(cut_lengths, cut_quantities):
+    return sorted(zip(cut_lengths, cut_quantities), key=lambda pair: pair[0], reverse=True)
+
+def flattenCutData(cutData):   
+    return [length for (length, quantity) in cutData for _ in range(quantity)]
+
+def addBladeKerf(cutData, bladeKerf):
+    return [[length + bladeKerf, quantity] for length, quantity in cutData]
+
+
 
 if __name__ == "__main__":
     root = tk.Tk()
