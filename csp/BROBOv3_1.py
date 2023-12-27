@@ -13,6 +13,7 @@ class CutOptimizerApp:
         self.stock_length = tk.StringVar()
         self.blade_width = tk.StringVar()
         self.dead_zone = tk.StringVar()
+        self.scale_factor = 100
 
         self.cut_lengths = []
         self.cut_quantities = []
@@ -90,7 +91,7 @@ class CutOptimizerApp:
         stock_length = stock_length - dead_zone
         cut_lengths = [scaleMeasurement(cut_length.get(), scale_factor) for cut_length in self.cut_lengths]
         cut_quantities = [int(cut_quantity.get()) for cut_quantity in self.cut_quantities]
-        return stock_length, blade_width, cut_lengths, cut_quantities, solver
+        return stock_length, blade_width, cut_lengths, cut_quantities, solver, scale_factor
 
     def process_data(self, stock_length, blade_width, cut_lengths, cut_quantities):
         zipped_data = zipCutData(cut_lengths, cut_quantities)
@@ -99,7 +100,7 @@ class CutOptimizerApp:
 
     def optimize_cuts(self):
         try:
-            stock_length, blade_width, cut_lengths, cut_quantities, solver = self.get_inputs()
+            stock_length, blade_width, cut_lengths, cut_quantities, solver, scale_factor = self.get_inputs()
             zipped_data = self.process_data(stock_length, blade_width, cut_lengths, cut_quantities)
             # Call the new solver here
             if solver == "OR-Tools":
@@ -113,14 +114,38 @@ class CutOptimizerApp:
                 zipped_data = flattenCutData(zipped_data)
                 print(f"Data Flattened: {zipped_data}")
                 solution = alnsSolver(stock_length, zipped_data, iterations=1000, seed=1234)
-                print(f"Solution: {solution}")
-                for idx, stick in enumerate(solution):
-                    adjusted_lengths = [float(length - blade_width) / 1000 for length in stick]
-                    print(f"Stick {idx + 1}: {adjusted_lengths}")
+                flat_solution = [length for stick in solution for length in stick]
+                testSolTemp = testSol(flat_solution, stock_length)
+                for idx, stick in enumerate(testSolTemp, start=1):
+                    usage = sum(stick) / stock_length * 100
+                    print(f"Stick {idx}: {stick}, Usage: {usage:.2f}%")
 
         except ValueError as e:
             print(f"Error: {e}")
             messagebox.showerror("Error", "Please enter valid numeric values.")
+
+def testSol(solution, stock_length):
+    testSolution = []
+    temp = 0
+    sticks = []
+
+    for length in solution:
+        if temp + length <= stock_length:
+            temp += length
+            sticks.append(length)
+        else:
+            testSolution.append(sorted(sticks, reverse=True))
+            sticks = [length]
+            temp = length
+
+    # Add the last stick to the solution
+    if sticks:
+        testSolution.append(sorted(sticks, reverse=True))
+
+    return testSolution
+
+def deScaleMeasurement(measurement, scaleFactor):
+    return int(float(measurement) / scaleFactor)
 
 def scaleMeasurement(measurement, scaleFactor):
     return int(float(measurement) * scaleFactor)
