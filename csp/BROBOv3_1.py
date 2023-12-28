@@ -85,64 +85,71 @@ class CutOptimizerApp:
     def get_inputs(self):
         scale_factor = 100
         solver = "ALNS"
-        stock_length = scaleMeasurement(self.stock_length.get(), scale_factor)  # Convert to integer after applying a scale factor
-        blade_width = scaleMeasurement(self.blade_width.get(), scale_factor)    # Convert to integer after applying a scale factor
-        dead_zone = scaleMeasurement(self.dead_zone.get(), scale_factor)        # Convert to integer after applying a scale factor
-        stock_length = stock_length - dead_zone
-        cut_lengths = [scaleMeasurement(cut_length.get(), scale_factor) for cut_length in self.cut_lengths]
+        stock_length = self.stock_length.get()
+        blade_width = self.blade_width.get()
+        dead_zone = self.dead_zone.get()
+        cut_lengths = [cut_length.get() for cut_length in self.cut_lengths]
         cut_quantities = [int(cut_quantity.get()) for cut_quantity in self.cut_quantities]
-        return stock_length, blade_width, cut_lengths, cut_quantities, solver, scale_factor
-
-    def process_data(self, stock_length, blade_width, cut_lengths, cut_quantities):
-        zipped_data = zipCutData(cut_lengths, cut_quantities)
-        zipped_data = addBladeKerf(zipped_data, blade_width)
-        return zipped_data
+        return stock_length, blade_width, dead_zone, cut_lengths, cut_quantities, solver, scale_factor
 
     def optimize_cuts(self):
         try:
-            stock_length, blade_width, cut_lengths, cut_quantities, solver, scale_factor = self.get_inputs()
-            zipped_data = self.process_data(stock_length, blade_width, cut_lengths, cut_quantities)
+            stock_length, blade_width, dead_zone, cut_lengths, cut_quantities, solver, scale_factor = self.get_inputs()
+            stock_length, blade_width, dead_zone, cut_lengths, zipped_data = solverPreProcess(stock_length, blade_width, dead_zone, cut_lengths, cut_quantities, scale_factor)
             # Call the new solver here
             if solver == "OR-Tools":
-                zipped_data = [[quantity, length] for length, quantity in zipped_data]  # Adjust the format for OR-Tools
-                solution = solveCut(zipped_data, stock_length, output_json=False, large_model=True, greedy_model=False, iterAccuracy=500)
-                for idx, stick in enumerate(solution):
-                    adjusted_lengths = [float(length - blade_width) / 1000 for length in stick[1]]
-                    print(f"Stick {idx + 1}: {adjusted_lengths}")
+                solution = solveORTools(zipped_data, stock_length)
+                solution = ortoolsPostProcessor(solution, blade_width)
             elif solver == "ALNS":
-                print(f"Zipped Data: {zipped_data}")
-                zipped_data = flattenCutData(zipped_data)
-                print(f"Data Flattened: {zipped_data}")
-                solution = alnsSolver(stock_length, zipped_data, iterations=1000, seed=1234)
-                flat_solution = [length for stick in solution for length in stick]
-                testSolTemp = testSol(flat_solution, stock_length)
-                for idx, stick in enumerate(testSolTemp, start=1):
-                    usage = sum(stick) / stock_length * 100
-                    print(f"Stick {idx}: {stick}, Usage: {usage:.2f}%")
+                solution = solveALNS(zipped_data, stock_length)
+                solution = alnsPostProcessor(solution, stock_length, blade_width)
+            # Print the solution
+            for idx, stick in enumerate(solution, start=1):
+                usage = sum(stick) / stock_length * 100
+                print(f"Stick {idx}: {stick}, Usage: {usage:.2f}%")
 
         except ValueError as e:
             print(f"Error: {e}")
             messagebox.showerror("Error", "Please enter valid numeric values.")
 
-def testSol(solution, stock_length):
-    testSolution = []
+def solveORTools(zipped_data, stock_length):
+    zipped_data = [[quantity, length] for length, quantity in zipped_data]  # Adjust the format for OR-Tools
+    return solveCut(zipped_data, stock_length, output_json=False, large_model=True, greedy_model=False, iterAccuracy=500)
+
+def solveALNS(zipped_data, stock_length):
+    zipped_data = flattenCutData(zipped_data)
+    return alnsSolver(stock_length, zipped_data, iterations=1000, seed=1234)
+
+def solverPreProcess(stock_length, blade_width, dead_zone, cut_lengths, cut_quantities, scale_factor):
+    stock_length = scaleMeasurement(stock_length, scale_factor)  # Convert to integer after applying a scale factor
+    blade_width = scaleMeasurement(blade_width, scale_factor)    # Convert to integer after applying a scale factor
+    dead_zone = scaleMeasurement(dead_zone, scale_factor)        # Convert to integer after applying a scale factor
+    stock_length = stock_length - dead_zone
+    cut_lengths = [scaleMeasurement(cut_length, scale_factor) for cut_length in cut_lengths]
+    zipped_data = zipCutData(cut_lengths, cut_quantities)
+    zipped_data = addBladeKerf(zipped_data, blade_width)
+    return stock_length, blade_width, dead_zone, cut_lengths, zipped_data
+
+def ortoolsPostProcessor(solution, blade_width):
+    return [[length - blade_width for length in stick[1]] for stick in solution]
+
+def alnsPostProcessor(solution, stock_length, blade_width):
+    solution = [length for stick in solution for length in stick]
+    tempSolution = []
     temp = 0
     sticks = []
-
     for length in solution:
-        if temp + length <= stock_length:
-            temp += length
-            sticks.append(length)
+        adjusted_length = length - blade_width
+        if temp + adjusted_length <= stock_length:
+            temp += adjusted_length
+            sticks.append(adjusted_length)
         else:
-            testSolution.append(sorted(sticks, reverse=True))
-            sticks = [length]
-            temp = length
-
-    # Add the last stick to the solution
+            tempSolution.append(sorted(sticks, reverse=True))
+            sticks = [adjusted_length]
+            temp = adjusted_length
     if sticks:
-        testSolution.append(sorted(sticks, reverse=True))
-
-    return testSolution
+        tempSolution.append(sorted(sticks, reverse=True))
+    return tempSolution
 
 def deScaleMeasurement(measurement, scaleFactor):
     return int(float(measurement) / scaleFactor)
