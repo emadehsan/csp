@@ -10,7 +10,7 @@ from alns.accept import HillClimbing
 from alns.select import RouletteWheel
 from alns.stop import MaxIterations
 
-BEAM_LENGTH = 0
+BEAM_LENGTH = 9500  #TODO: make this a parameter It is not being set correctly
 class CspState:
     """
     Solution state for the CSP problem. It has two data members, assignments
@@ -144,7 +144,7 @@ def minimal_wastage(state, random_state):
 
     return state
 
-def alnsSolver(stock_length, cutData, iterations=1000, seed=1234):
+def alnsSolver(stock_length, cutData, iterations=100, seed=1234):
     BEAM_LENGTH = stock_length
     BEAMS = cutData # must be a flattened list 
     # Define the initial state of the problem
@@ -160,11 +160,11 @@ def alnsSolver(stock_length, cutData, iterations=1000, seed=1234):
     alns.add_destroy_operator(worst_removal)
     alns.add_repair_operator(greedy_insert)
     alns.add_repair_operator(minimal_wastage)
+    
     accept = HillClimbing()
     select = RouletteWheel([3, 2, 1, 0.5], 0.8, 2, 2)
     stop = MaxIterations(iterations)
     result = alns.iterate(init_sol, select, accept, stop)
     solution = result.best_state
-    
     # Return the best solution found
     return solution.assignments

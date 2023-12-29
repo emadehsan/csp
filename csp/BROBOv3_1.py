@@ -84,7 +84,7 @@ class CutOptimizerApp:
     
     def get_inputs(self):
         scale_factor = 100
-        solver = "ALNS"
+        solver = "OR-Tools"
         stock_length = self.stock_length.get()
         blade_width = self.blade_width.get()
         dead_zone = self.dead_zone.get()
@@ -92,20 +92,32 @@ class CutOptimizerApp:
         cut_quantities = [int(cut_quantity.get()) for cut_quantity in self.cut_quantities]
         return stock_length, blade_width, dead_zone, cut_lengths, cut_quantities, solver, scale_factor
 
+    def uTest(self):
+        scale_factor = 100
+        solver = "ALNS"
+        stock_length = 100
+        blade_width = .25
+        dead_zone = 5
+        cut_lengths = [40, 35, 15, 12, 6, 4]
+        cut_quantities = [4, 9, 6, 4, 8, 12]
+        return stock_length, blade_width, dead_zone, cut_lengths, cut_quantities, solver, scale_factor
+    
+
     def optimize_cuts(self):
         try:
-            stock_length, blade_width, dead_zone, cut_lengths, cut_quantities, solver, scale_factor = self.get_inputs()
+            #stock_length, blade_width, dead_zone, cut_lengths, cut_quantities, solver, scale_factor = self.get_inputs()
+            stock_length, blade_width, dead_zone, cut_lengths, cut_quantities, solver, scale_factor = self.uTest()
             stock_length, blade_width, dead_zone, cut_lengths, zipped_data = solverPreProcess(stock_length, blade_width, dead_zone, cut_lengths, cut_quantities, scale_factor)
             # Call the new solver here
             if solver == "OR-Tools":
                 solution = solveORTools(zipped_data, stock_length)
-                solution = ortoolsPostProcessor(solution, blade_width)
+                solution = ortoolsPostProcessor(solution, blade_width, scale_factor)
             elif solver == "ALNS":
                 solution = solveALNS(zipped_data, stock_length)
-                solution = alnsPostProcessor(solution, stock_length, blade_width)
+                solution = alnsPostProcessor(solution, blade_width, scale_factor)
             # Print the solution
             for idx, stick in enumerate(solution, start=1):
-                usage = sum(stick) / stock_length * 100
+                usage = sum(stick) / (stock_length / scale_factor) * 100
                 print(f"Stick {idx}: {stick}, Usage: {usage:.2f}%")
 
         except ValueError as e:
@@ -130,26 +142,11 @@ def solverPreProcess(stock_length, blade_width, dead_zone, cut_lengths, cut_quan
     zipped_data = addBladeKerf(zipped_data, blade_width)
     return stock_length, blade_width, dead_zone, cut_lengths, zipped_data
 
-def ortoolsPostProcessor(solution, blade_width):
-    return [[length - blade_width for length in stick[1]] for stick in solution]
+def ortoolsPostProcessor(solution, blade_width, scale_factor):
+    return [[(length - blade_width) / scale_factor for length in stick[1]] for stick in solution]
 
-def alnsPostProcessor(solution, stock_length, blade_width):
-    solution = [length for stick in solution for length in stick]
-    tempSolution = []
-    temp = 0
-    sticks = []
-    for length in solution:
-        adjusted_length = length - blade_width
-        if temp + adjusted_length <= stock_length:
-            temp += adjusted_length
-            sticks.append(adjusted_length)
-        else:
-            tempSolution.append(sorted(sticks, reverse=True))
-            sticks = [adjusted_length]
-            temp = adjusted_length
-    if sticks:
-        tempSolution.append(sorted(sticks, reverse=True))
-    return tempSolution
+def alnsPostProcessor(solution, blade_width, scale_factor):
+    return [[(length - blade_width) / scale_factor for length in assignments] for assignments in solution]
 
 def deScaleMeasurement(measurement, scaleFactor):
     return int(float(measurement) / scaleFactor)
